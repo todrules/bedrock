@@ -1,0 +1,171 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+
+env:
+  NODE_VERSION: '20'
+  AWS_REGION: us-east-1
+
+permissions:
+  id-token: write   # Required for OIDC authentication
+  contents: read
+
+jobs:
+  # ─── Build Backend ───────────────────────────────────────────────────────────
+  build-backend:
+    name: Build Backend Lambda
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload backend dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-dist
+          path: backend/dist/
+
+  # ─── Deploy Infrastructure ───────────────────────────────────────────────────
+  deploy-infrastructure:
+    name: Deploy CDK Stack
+    runs-on: ubuntu-latest
+    needs: build-backend
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+    defaults:
+      run:
+        working-directory: infrastructure
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: infrastructure/package-lock.json
+
+      - name: Download backend dist
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-dist
+          path: backend/dist/
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install CDK dependencies
+        run: npm ci
+
+      - name: Build CDK
+        run: npm run build
+
+      - name: CDK Bootstrap (idempotent)
+        run: npx cdk bootstrap aws://${{ secrets.AWS_ACCOUNT_ID }}/${{ env.AWS_REGION }} --require-approval never
+
+      - name: CDK Deploy
+        run: |
+          npx cdk deploy BedrockChatStack \
+            --require-approval never \
+            --outputs-file cdk-outputs.json
+        env:
+          ENVIRONMENT: ${{ github.event.inputs.environment || 'dev' }}
+
+      - name: Upload CDK outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: cdk-outputs
+          path: infrastructure/cdk-outputs.json
+
+  # ─── Deploy Frontend ─────────────────────────────────────────────────────────
+  deploy-frontend:
+    name: Deploy Frontend
+    runs-on: ubuntu-latest
+    needs: deploy-infrastructure
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Download CDK outputs
+        uses: actions/download-artifact@v4
+        with:
+          name: cdk-outputs
+          path: .
+
+      - name: Extract CDK outputs
+        id: cdk-outputs
+        run: |
+          echo "API_URL=$(cat ../cdk-outputs.json | jq -r '.BedrockChatStack.ApiUrl')" >> $GITHUB_OUTPUT
+          echo "USER_POOL_ID=$(cat ../cdk-outputs.json | jq -r '.BedrockChatStack.UserPoolId')" >> $GITHUB_OUTPUT
+          echo "USER_POOL_CLIENT_ID=$(cat ../cdk-outputs.json | jq -r '.BedrockChatStack.UserPoolClientId')" >> $GITHUB_OUTPUT
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_API_URL: ${{ steps.cdk-outputs.outputs.API_URL }}
+          NEXT_PUBLIC_COGNITO_USER_POOL_ID: ${{ steps.cdk-outputs.outputs.USER_POOL_ID }}
+          NEXT_PUBLIC_COGNITO_CLIENT_ID: ${{ steps.cdk-outputs.outputs.USER_POOL_CLIENT_ID }}
+          NEXT_PUBLIC_COGNITO_DOMAIN: ${{ secrets.COGNITO_DOMAIN }}
+          NEXT_PUBLIC_AWS_REGION: ${{ env.AWS_REGION }}
+
+      - name: Deploy to S3 + CloudFront
+        run: |
+          aws s3 sync out/ s3://${{ secrets.FRONTEND_BUCKET_NAME }}/ --delete
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*"
