@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [main, develop]
 
+# Limit default GITHUB_TOKEN permissions to read-only for all jobs.
+# Individual jobs that need additional permissions declare them explicitly.
+permissions:
+  contents: read
+
 env:
   NODE_VERSION: '20'
 
@@ -14,6 +19,8 @@ jobs:
   backend-lint-build-test:
     name: Backend – Lint, Build & Test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: backend
@@ -52,6 +59,8 @@ jobs:
   frontend-lint-build-test:
     name: Frontend – Lint, Build & Test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: frontend
@@ -96,6 +105,8 @@ jobs:
   infrastructure-lint-build-test:
     name: Infrastructure – Lint, Build & Test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: infrastructure
