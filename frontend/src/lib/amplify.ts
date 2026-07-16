@@ -30,8 +30,8 @@ export function configureAmplify(): void {
                 oauth: {
                   domain,
                   scopes: ['openid', 'email', 'profile'],
-                  redirectSignIn: [origin],
-                  redirectSignOut: [origin],
+                  redirectSignIn: [`${origin}/callback`],
+                  redirectSignOut: [`${origin}/callback`],
                   responseType: 'code',
                 },
               }
