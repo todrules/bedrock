@@ -22,8 +22,7 @@ const getConversationService = (): ConversationService => {
   if (!conversationService) {
     const tableName = process.env.CONVERSATIONS_TABLE_NAME;
     const knowledgeBaseId = process.env.KNOWLEDGE_BASE_ID;
-    const modelId = process.env.BEDROCK_MODEL_ID;
-
+    const modelId = process.env.MODEL_ID;
     if (!tableName || !knowledgeBaseId || !modelId) {
       throw new ApplicationError(
         'CONFIGURATION_ERROR',
