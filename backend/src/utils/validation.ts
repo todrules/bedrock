@@ -22,13 +22,12 @@ export function validateChatRequest(body: unknown): ChatRequest {
   }
 
   const candidate = body as Record<string, unknown>;
-  const message = candidate.message;
+  const message = candidate.message ?? candidate.content;
   const userId = candidate.userId;
   const conversationId = candidate.conversationId;
 
   validateRequired(message, 'message');
   validateRequired(userId, 'userId');
-
   if (typeof conversationId !== 'undefined') {
     validateRequired(conversationId, 'conversationId');
     if (!isValidUUID(conversationId)) {
