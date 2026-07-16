@@ -29,27 +29,10 @@ describe('useChat', () => {
 
   it('sendMessage updates messages', async () => {
     mockedApiService.sendMessage.mockResolvedValue({
-      conversation: {
-        id: 'conversation-1',
-        title: 'New conversation',
-        createdAt: '2026-07-16T19:55:47.134Z',
-        updatedAt: '2026-07-16T19:55:47.134Z',
-      },
-      userMessage: {
-        id: 'message-user',
-        conversationId: 'conversation-1',
-        role: 'user',
-        content: 'What is Bedrock?',
-        createdAt: '2026-07-16T19:55:47.134Z',
-      },
-      assistantMessage: {
-        id: 'message-assistant',
-        conversationId: 'conversation-1',
-        role: 'assistant',
-        content: 'Bedrock is your enterprise knowledge assistant.',
-        createdAt: '2026-07-16T19:55:48.134Z',
-        citations: [],
-      },
+      conversationId: 'conversation-1',
+      messageId: 'message-assistant',
+      content: 'Bedrock is your enterprise knowledge assistant.',
+      citations: [],
     });
 
     const { result } = renderHook(() => useChat());

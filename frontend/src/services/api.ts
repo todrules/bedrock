@@ -81,16 +81,45 @@ export class ApiService {
   }
 
   async sendMessage(request: ChatRequest): Promise<ChatResponse> {
-    return this.request<ChatResponse>('/chat', {
+    type BackendCitation = {
+      documentId: string;
+      documentTitle: string;
+      excerpt: string;
+      location?: string;
+    };
+
+    type BackendChatResponse = {
+      conversationId: string;
+      messageId: string;
+      content: string;
+      citations: BackendCitation[];
+      sessionId?: string;
+    };
+
+    const raw = await this.request<BackendChatResponse>('/chat', {
       method: 'POST',
       body: JSON.stringify(request),
     });
+
+    return {
+      conversationId: raw.conversationId,
+      messageId: raw.messageId,
+      content: raw.content,
+      citations: raw.citations.map((citation) => ({
+        id: citation.documentId,
+        title: citation.documentTitle,
+        excerpt: citation.excerpt,
+        url: citation.location,
+      })),
+      sessionId: raw.sessionId,
+    };
   }
 
   async listConversations(): Promise<Conversation[]> {
-    return this.request<Conversation[]>('/conversations', {
+    const data = await this.request<{ conversations: Conversation[] }>('/conversations', {
       method: 'GET',
     });
+    return data.conversations;
   }
 
   async getConversation(id: string): Promise<ConversationWithMessages> {

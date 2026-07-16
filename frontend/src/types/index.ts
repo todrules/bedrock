@@ -28,9 +28,11 @@ export interface ChatRequest {
 }
 
 export interface ChatResponse {
-  conversation: Conversation;
-  userMessage: Message;
-  assistantMessage: Message;
+  conversationId: string;
+  messageId: string;
+  content: string;
+  citations: Citation[];
+  sessionId?: string;
 }
 
 export interface ConversationWithMessages extends Conversation {

@@ -83,11 +83,23 @@ export function useChat(): UseChatResult {
           conversationId: currentConversationId ?? undefined,
         });
 
-        setCurrentConversationId(response.conversation.id);
+        setCurrentConversationId(response.conversationId);
         setMessages((currentMessages) => {
+          const confirmedUserMessage: Message = {
+            ...optimisticMessage,
+            conversationId: response.conversationId,
+          };
+          const assistantMessage: Message = {
+            id: response.messageId,
+            conversationId: response.conversationId,
+            role: 'assistant',
+            content: response.content,
+            createdAt: new Date().toISOString(),
+            citations: response.citations,
+          };
           const withoutOptimistic = currentMessages.filter((message) => message.id !== optimisticMessage.id);
 
-          return [...withoutOptimistic, response.userMessage, response.assistantMessage];
+          return [...withoutOptimistic, confirmedUserMessage, assistantMessage];
         });
       } catch (caughtError) {
         const nextError =
