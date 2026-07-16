@@ -94,9 +94,53 @@ export class ApiService {
   }
 
   async getConversation(id: string): Promise<ConversationWithMessages> {
-    return this.request<ConversationWithMessages>(`/conversations/${id}`, {
+    type BackendCitation = {
+      documentId: string;
+      documentTitle: string;
+      excerpt: string;
+      location?: string;
+    };
+
+    type BackendMessage = {
+      id: string;
+      conversationId: string;
+      role: 'user' | 'assistant';
+      content: string;
+      timestamp: string;
+      citations?: BackendCitation[];
+    };
+
+    type BackendConversation = {
+      id: string;
+      title: string;
+      createdAt: string;
+      updatedAt: string;
+      messages: BackendMessage[];
+    };
+
+    const raw = await this.request<BackendConversation>(`/conversations/${id}`, {
       method: 'GET',
     });
+
+    return {
+      id: raw.id,
+      title: raw.title,
+      createdAt: raw.createdAt,
+      updatedAt: raw.updatedAt,
+      messages: raw.messages.map((message) => ({
+        id: message.id,
+        conversationId: message.conversationId,
+        role: message.role,
+        content: message.content,
+        createdAt: message.timestamp,
+        citations: message.citations?.map((citation) => ({
+          id: citation.documentId,
+          title: citation.documentTitle,
+          excerpt: citation.excerpt,
+          url: citation.location,
+        })),
+      })),
+    };
   }
 
   async deleteConversation(id: string): Promise<void> {
