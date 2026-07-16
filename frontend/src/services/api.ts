@@ -36,7 +36,9 @@ export class ApiService {
 
   private async getAuthHeaders(): Promise<Record<string, string>> {
     const token = await getAccessToken();
-    const authorizationHeader = token ? { Authorization: ['Bearer', token].join(' ') } : {};
+    const authorizationHeader: Record<string, string> = token
+      ? { Authorization: ['Bearer', token].join(' ') }
+      : {};
 
     return {
       'Content-Type': 'application/json',

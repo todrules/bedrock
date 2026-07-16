@@ -8,7 +8,7 @@ jest.mock('react-markdown', () => ({
   default: ({ children }: { children: string }) => (
     <div>
       {children
-        .split(/(\\*\\*.*?\\*\\*|`.*?`)/g)
+        .split(/(\*\*.*?\*\*|`.*?`)/g)
         .filter(Boolean)
         .map((part, index) => {
           if (part.startsWith('**') && part.endsWith('**')) {

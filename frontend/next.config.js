@@ -1,3 +1,9 @@
+const path = require('path');
+
+if (!process.env.NEXT_FONT_GOOGLE_MOCKED_RESPONSES) {
+  process.env.NEXT_FONT_GOOGLE_MOCKED_RESPONSES = path.join(__dirname, 'font-mocks.js');
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
