@@ -1,6 +1,6 @@
 'use client';
 
-import { LoaderCircle, SendHorizonal } from 'lucide-react';
+import { LoaderCircle, SendHorizontal } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 import { cn } from '@/lib/utils';
