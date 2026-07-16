@@ -93,7 +93,7 @@ export function ChatInput({ onSendMessage, isLoading = false, maxLength = 4000 }
             void handleSubmit();
           }}
         >
-          {isLoading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <SendHorizonal className="h-4 w-4" />}
+          {isLoading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <SendHorizontal className="h-4 w-4" />}
           Send
         </button>
       </div>
